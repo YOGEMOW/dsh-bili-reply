@@ -11,11 +11,16 @@ description: 回复 B 站「@我的」评论。当用户说「我@你了」「�
 
 | 依赖 | 说明 |
 |---|---|
-| **浏览器自动化** ⚠️ | **最关键**。AI 必须能操控一个**已登录 B 站**的浏览器，否则读不到 @ 通知、也发不了评论。推荐 [BrowserSkill](https://github.com/Tencent/BrowserSkill)（`bsk` CLI + 浏览器扩展）。**安装步骤见仓库 README 的「前置条件」一节。** |
+| **浏览器自动化** ⚠️ | **最关键**。AI 必须能操控一个**已登录 B 站**的浏览器，否则读不到 @ 通知、也发不了评论。推荐 [BrowserSkill](https://github.com/Tencent/BrowserSkill)：**对话里**用 `bsk_*` 工具（先装 DSH 插件 `@wxg-prc-cpg/browser-skill-dsh-plugin`），**脚本里**用 `bsk` CLI（看门狗走这条）。安装步骤见它仓库 README 的「前置条件」一节。 |
 | **`video-watch` 技能** | 必需。用它把视频转成带时间戳的文字稿 + 抽帧图片。本技能不重复实现这一步。 |
 | **一个 B 站账号** | 建议用不常用的小号；本技能会操作它的评论区。 |
 
-**本技能的示例按 DSH 的 `browser_*` 工具写。** 换环境时把这一步换成你手上的浏览器工具，**流程逻辑不变**——读通知、核对昵称、点回复框这几步是一样的。
+**本技能的示例按 DSH 的 `bsk_*` 工具写**（BrowserSkill **0.3.3** 起由 `browser_*` 改名而来；旧文档里的 `browser_*` 现在已不存在）。换环境时把这一步换成你手上的浏览器工具，**流程逻辑不变**——读通知、核对昵称、点回复框这几步是一样的。
+
+**两种形态，按场景选**：
+
+- **对话里回**：装了 DSH 插件 `@wxg-prc-cpg/browser-skill-dsh-plugin` 后，先用 `/browser-skill` 激活，再用 `bsk_*` 工具读通知、点「回复」、截图确认；
+- **后台自动回**：`tools/watch-at.ps1` 直接调 `bsk.exe` CLI（同一套 BrowserSkill，只是入口不同），**不需要**装 DSH 插件。
 
 **装完先自检**：能在浏览器里打开 `https://message.bilibili.com/#/at` 并读到通知列表，才算前置通了。
 

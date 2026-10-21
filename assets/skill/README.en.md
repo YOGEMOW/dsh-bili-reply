@@ -62,7 +62,9 @@ We recommend **[BrowserSkill](https://github.com/Tencent/BrowserSkill)** — Ten
 
 If it returns page content, the prerequisite is satisfied.
 
-> **Other browser automation works too.** The skill needs "read page / click / fill form"; the examples in `SKILL.md` use the `browser_*` tools, but swap in whatever you have — **the flow logic is unchanged**.
+> **Other browser automation works too.** The skill needs "read page / click / fill form"; the examples in `SKILL.md` use the `bsk_*` tools (renamed from `browser_*` in BrowserSkill 0.3.3), but swap in whatever you have — **the flow logic is unchanged**.
+>
+> **Two shapes:** in-conversation → install the DSH plugin `@wxg-prc-cpg/browser-skill-dsh-plugin` and use `bsk_*`; unattended → the watchdog calls the `bsk` CLI directly (no DSH plugin needed).
 
 ## Step 4: install video-watch
 

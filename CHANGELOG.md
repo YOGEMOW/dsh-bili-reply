@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1 — 2026-10-21
+
+**修（文档同步）**
+
+- BrowserSkill **0.3.3** 起把工具名从 `browser_*` 改成了 `bsk_*`；技能文档 `SKILL.md` / `README.md` / `README.en.md`
+  里的示例改用新名，并补了「两种形态」说明：
+  **对话里**用 `bsk_*` 工具（需 DSH 插件 `@wxg-prc-cpg/browser-skill-dsh-plugin`）、
+  **后台自动回复**看门狗直接调 `bsk` CLI（不需要 DSH 插件）。
+- 插件 README 的「前置条件」同步说明两种形态。
+- 关闭 [#1](https://github.com/YOGEMOW/dsh-bili-reply/issues/1)。
 ## 0.1.0 — 2026-10-21
 
 首个版本：把 `bilibili-reply` 技能（含看门狗 `tools/watch-at.ps1`）打包成 DSH 插件。

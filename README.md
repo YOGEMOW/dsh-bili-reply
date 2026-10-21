@@ -19,7 +19,7 @@ dsh plugin --profile desktop add github:YOGEMOW/dsh-bili-reply
 | 依赖 | 用途 | 怎么装 |
 |---|---|---|
 | **DSH**（桌面版或 web） | 宿主 | 你已经有了 🙂 |
-| **BrowserSkill（`bsk` CLI + 已登录 B站的浏览器）** | 读 @ 通知、发评论、复查可见性 —— **最关键** | 见 [Tencent/BrowserSkill](https://github.com/Tencent/BrowserSkill) 的 README；装完先确认 `bsk` 在 PATH 里，且浏览器里登录着 B站 |
+| **BrowserSkill** | 读 @ 通知、发评论、复查可见性 —— **最关键** | 见 [Tencent/BrowserSkill](https://github.com/Tencent/BrowserSkill) 的 README。两种形态按需选：**对话里**装 DSH 插件 `@wxg-prc-cpg/browser-skill-dsh-plugin`（`bsk_*` 工具，先用 `/browser-skill` 激活）；**后台自动回复**只用 `bsk` CLI 就够（看门狗走这条）。两条腿都要求浏览器里登录着 B站 |
 | **`video-watch` 技能** | 把视频转成带时间戳的文字稿 + 抽帧 | 放到 `~/.dsh/skills/video-watch`（含 `SKILL.md` / `scripts/` / `vw.py`） |
 | **Python 3.10+** | `video-watch` 转写（faster-whisper / yt-dlp） | 见 video-watch 的 README |
 | **PowerShell 5.1+（Windows）** | 看门狗脚本 | Windows 自带；**看门狗目前只支持 Windows** |
