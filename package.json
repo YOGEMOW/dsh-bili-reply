@@ -1,0 +1,68 @@
+{
+  "name": "dsh-bili-reply",
+  "version": "0.1.0",
+  "description": "DSH 插件：把 B站「@我的」自动回复技能（含看门狗）打包成一键安装 —— 换头像、看视频、写评论、发出去、复查可见性",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "bilibili",
+    "skill",
+    "browser-automation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOGEMOW/dsh-bili-reply.git"
+  },
+  "homepage": "https://github.com/YOGEMOW/dsh-bili-reply#readme",
+  "bugs": {
+    "url": "https://github.com/YOGEMOW/dsh-bili-reply/issues"
+  },
+  "license": "MIT",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "lib",
+    "assets",
+    "README.md",
+    "CHANGELOG.md",
+    "selfcheck.mjs",
+    "LICENSE"
+  ],
+  "scripts": {
+    "selfcheck": "node selfcheck.mjs"
+  },
+  "engines": {
+    "dsh": ">=0.1.7-rc.1",
+    "node": ">=22"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "*",
+    "@deepseek-ai/schemastery": "*"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    },
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    }
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

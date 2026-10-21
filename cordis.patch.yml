@@ -1,0 +1,19 @@
+# ============================================================================
+# dsh-bili-reply —— DSH bundle patch（插件自带的挂载声明）
+# ============================================================================
+# 装上之后，profile 只要在 `dsh.profile.bundles` 里列出本包名即可生效：
+#
+#   dsh plugin --profile desktop add github:YOGEMOW/dsh-bili-reply
+#   （本地开发：dsh plugin --profile desktop add link:<插件目录>）
+#
+# 插件本身**不做**什么危险动作：加载时把 assets/skill 铺到
+# `$DSH_HOME/skills/bilibili-reply`（缺什么补什么），再注册几个工具和
+# `/api/bili-reply/*` 接口。真正的自动化（看门狗）要用户显式装计划任务。
+# ============================================================================
+
+- insert:
+    - id: bili-reply
+      name: dsh-bili-reply
+      config:
+        # 真正的用户配置在 DSH 设置层（或插件 config.json），这里只放默认值
+        enabled: true

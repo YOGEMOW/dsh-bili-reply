@@ -1,0 +1,20 @@
+# 依赖 / 构建产物
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+
+# 技能运行时会生成的东西（真实位置在 ~/.dsh/skills，这里只是防呆）
+config.md
+tools/watch-at.config.ps1
+tools/*.log
+tools/at-state.json
+tools/at-state.json.bak*
+tools/prompt-last.txt
+tools/reply.lock
+*.bak-*
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
