@@ -23,7 +23,7 @@ const defineTool = hostDeps.defineTool
 
 import { spawn, spawnSync } from 'node:child_process'
 import {
-  copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync,
+  appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync,
 } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { homedir } from 'node:os'
@@ -31,8 +31,8 @@ import { fileURLToPath } from 'node:url'
 
 export const name = 'bili-reply'
 
-/** 只用宿主已有的两个服务：工具注册表 + HTTP（没有设置页，所以不依赖 settings） */
-export const inject = ['tools', 'webServer']
+/** 只强依赖工具注册表；webServer 是**可选**的（headless 之类没有 HTTP 的 profile 也要能加载） */
+export const inject = ['tools']
 
 /**
  * 🔴 字段都要 `.extra('volatile', true)`：DSH 的 settings.update() 只认 volatile 字段
@@ -49,7 +49,12 @@ export const Config = !z ? undefined : z.object({
   taskName: z.string().default('DSH-BiliAtWatch').extra('volatile', true),
 })
 
-const PLUGIN_VERSION = '0.1.0'
+// 版本号从 package.json 读，避免两处不一致（踩过：包 0.1.1、marker 里写 0.1.0）
+const PLUGIN_VERSION = (() => {
+  try {
+    return JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf8')).version
+  } catch { return '0.0.0' }
+})()
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ASSET_ROOT = join(HERE, 'assets', 'skill')
 
@@ -66,17 +71,30 @@ const USER_OWNED = new Set([
 ])
 
 export function apply(ctx, config) {
+  // ⚠️ 宿主传进来的 config 里，值不保证是原始类型（实测 skillDir 会拿到一个对象）——
+  //    配置一律先过类型守卫再拼路径，别直接 String(object)（会拼出 "[object Object]" 目录）。
+  const asStr = (v, fallback = '') => (typeof v === 'string' ? v : fallback)
+  const asBool = (v, fallback) => (typeof v === 'boolean' ? v : fallback)
+  const raw = (config && typeof config === 'object') ? config : {}
   const cfg = {
-    autoInstallSkill: true,
-    autoUpdateSkill: false,
-    skillDir: '',
-    taskName: 'DSH-BiliAtWatch',
-    ...(config || {}),
+    autoInstallSkill: asBool(raw.autoInstallSkill, true),
+    autoUpdateSkill: asBool(raw.autoUpdateSkill, false),
+    skillDir: asStr(raw.skillDir, ''),
+    taskName: asStr(raw.taskName, 'DSH-BiliAtWatch'),
   }
 
   const log = (msg) => {
     try { ctx.logger?.info?.(String(msg)) } catch { /* 日志绝不能影响主流程 */ }
   }
+  /** ⭐ 落一份自己的启动日志：宿主控制台看不到插件日志时，排障只看这个文件 */
+  const bootLog = (msg) => {
+    try {
+      const d = join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'bili-reply')
+      mkdirSync(d, { recursive: true })
+      appendFileSync(join(d, 'boot.log'), `${new Date().toISOString()} ${msg}\n`, 'utf8')
+    } catch { /* 写不进去就算了 */ }
+  }
+  bootLog(`apply 开始（profile=${process.env.DSH_PROFILE || '?'} home=${process.env.DSH_HOME || '(default)'} cfgKeys=${Object.keys(raw).join(',')} skillDirType=${typeof raw.skillDir}）`)
   const dshHome = () => process.env.DSH_HOME || join(homedir(), '.dsh')
   const skillDir = () => String(cfg.skillDir || '').trim() || join(dshHome(), 'skills', 'bilibili-reply')
   const toolsDir = () => join(skillDir(), 'tools')
@@ -238,12 +256,9 @@ export function apply(ctx, config) {
     name: 'bili_reply_install',
     description: '把插件内置的 bilibili-reply 技能铺到 ~/.dsh/skills/bilibili-reply（或更新）。\n'
       + '用户自己的 config.md / watch-at.config.ps1 / 日志不会被覆盖。',
+    // ⚠️ DSH 的 defineTool 吃的是「参数名 → 值 schema spec」的映射（不是完整 JSON Schema）
     parameters: {
-      type: 'object',
-      properties: {
-        force: { type: 'boolean', description: 'true = 连技能文件（SKILL.md、watch-at.ps1…）一起更新；默认只补缺文件' },
-      },
-      additionalProperties: false,
+      force: { type: 'boolean', description: 'true = 连技能文件（SKILL.md、watch-at.ps1…）一起更新；默认只补缺文件' },
     },
     execute: (args = {}) => installSkill({ force: Boolean(args.force) }),
   })
@@ -253,12 +268,7 @@ export function apply(ctx, config) {
     description: 'Windows 计划任务：status=查在不在 / install=装（每 1 分钟，脚本内 30 秒补检）/ remove=删。'
       + '装任务前要先填好 tools/watch-at.config.ps1。',
     parameters: {
-      type: 'object',
-      properties: {
-        action: { type: 'string', enum: ['status', 'install', 'remove'], description: '要做的事' },
-      },
-      required: ['action'],
-      additionalProperties: false,
+      action: { type: 'string', description: 'status=查在不在 / install=装（每 1 分钟 + 脚本内 30 秒补检）/ remove=删' },
     },
     async execute(args = {}) {
       const action = String(args.action || 'status')
@@ -281,11 +291,7 @@ export function apply(ctx, config) {
     description: '手动跑一次看门狗。mode：check=查一遍（默认只通知不回复）/ noreply=只看不回复 / init=把当前最新一条设为基准（历史不处理）/ '
       + 'test=给通知通道发测试消息 / status=打印脚本自己的状态。',
     parameters: {
-      type: 'object',
-      properties: {
-        mode: { type: 'string', enum: ['check', 'noreply', 'init', 'test', 'status'], description: '跑法' },
-      },
-      additionalProperties: false,
+      mode: { type: 'string', description: 'check（默认，只通知不回复）/ noreply / init（设基准）/ test（测通知通道）/ status' },
     },
     execute(args = {}) {
       const mode = String(args.mode || 'check')
@@ -305,12 +311,8 @@ export function apply(ctx, config) {
     name: 'bili_reply_log',
     description: '查看看门狗的日志尾巴（which=watch 运行日志 / replies 回复存档）。排障用。',
     parameters: {
-      type: 'object',
-      properties: {
-        which: { type: 'string', enum: ['watch', 'replies'], description: '看哪个日志' },
-        lines: { type: 'number', description: '看多少行（默认 40，最多 400）' },
-      },
-      additionalProperties: false,
+      which: { type: 'string', description: 'watch=运行日志（默认）/ replies=回复存档' },
+      lines: { type: 'number', description: '看多少行（默认 40，最多 400）' },
     },
     execute(args = {}) {
       const which = String(args.which || 'watch')
@@ -355,31 +357,42 @@ export function apply(ctx, config) {
     return sendJson(res, 404, { ok: false, error: 'not found' })
   }
 
-  ctx.effect(() => ctx.webServer.register({
-    kind: 'prefix',
-    path: '/api/bili-reply',
-    handler: async (req, res) => {
-      try { await handle(req, res, new URL(req.url, 'http://127.0.0.1')) } catch (e) {
-        try { sendJson(res, 500, { ok: false, error: String(e?.message ?? e) }) } catch { /* 连接已断 */ }
-      }
-    },
-  }), 'bili-reply: /api/bili-reply 路由')
+  // ⭐ webServer 是**可选**的：有就注册 HTTP 接口；headless 这类没有 HTTP 的 profile 就跳过（不然整条插件不激活）
+  try {
+    const web = (typeof ctx.get === 'function' ? ctx.get('webServer') : null) || ctx.webServer
+    if (web && typeof web.register === 'function') {
+      ctx.effect(() => web.register({
+        kind: 'prefix',
+        path: '/api/bili-reply',
+        handler: async (req, res) => {
+          try { await handle(req, res, new URL(req.url, 'http://127.0.0.1')) } catch (e) {
+            try { sendJson(res, 500, { ok: false, error: String(e?.message ?? e) }) } catch { /* 连接已断 */ }
+          }
+        },
+      }), 'bili-reply: /api/bili-reply 路由')
+    } else {
+      log('bili-reply：这个 profile 没有 webServer，跳过 /api/bili-reply 路由（工具照常可用）')
+    }
+  } catch (e) {
+    log(`bili-reply：注册 HTTP 路由失败（不影响工具）—— ${e?.message ?? e}`)
+  }
 
   /* ─────────────── 加载时：铺技能 ─────────────── */
 
   try {
-    const marker = readMarker()
-    const shouldInstall = cfg.autoInstallSkill !== false && (
-      !existsSync(join(skillDir(), 'SKILL.md'))
-      || (cfg.autoUpdateSkill === true && marker?.version !== PLUGIN_VERSION)
-    )
-    if (shouldInstall) {
-      const r = installSkill({ force: cfg.autoUpdateSkill === true })
+    if (cfg.autoInstallSkill !== false) {
+      const marker = readMarker()
+      // 每次加载都跑一遍「缺什么补什么」（很便宜），顺便写版本标记；
+      // 只有开了 autoUpdateSkill 且版本变了才覆盖技能文件
+      const force = cfg.autoUpdateSkill === true && marker?.version !== PLUGIN_VERSION
+      const r = installSkill({ force })
+      bootLog(`install: ${JSON.stringify(r)}`)
       if (!r.ok) log(`bili-reply：铺技能失败 —— ${r.error}`)
     }
   } catch (e) {
     log(`bili-reply：铺技能异常（插件照常加载）—— ${e?.message ?? e}`)
   }
 
+  bootLog('apply 完成（工具已注册）')
   log(`dsh-bili-reply 已挂载（技能目录 ${skillDir()}）`)
 }

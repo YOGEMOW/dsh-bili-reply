@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.2 — 2026-10-22
+
+**修（真实宿主上跑出来的问题）**
+
+- **工具参数 schema 形态不对**：DSH 的 `defineTool` 要的是「参数名 → 值 schema spec」的映射，
+  我们原来传的是完整 JSON Schema（`{type:'object', properties:{...}}`）⇒ 激活时抛
+  `JsonSchemaError: unsupported JSON schema: parameters.type must be a value schema object`，
+  整条插件不激活。5 个工具全改成映射形态。
+- **配置值类型守卫**：宿主传进来的 config 里 `skillDir` 可能不是字符串（实测是对象），
+  直接用会拼出 `[object Object]` 目录。改成 `asStr/asBool` 守卫。
+- **webServer 改成可选**：`inject` 只留 `tools`，没有 HTTP 的 profile（headless）也能加载；
+  有 webServer 才注册 `/api/bili-reply/*`。
+- **每次加载都补技能**（原来只在缺 SKILL.md 时才铺，导致版本 marker 永远不写）；
+  版本号改成从 `package.json` 读，避免两处不一致。
+- 新增 `~/.dsh/bili-reply/boot.log`：宿主控制台看不到插件日志时靠它排障。
 ## 0.1.1 — 2026-10-21
 
 **修（文档同步）**

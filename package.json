@@ -1,6 +1,6 @@
 {
   "name": "dsh-bili-reply",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "DSH 插件：把 B站「@我的」自动回复技能（含看门狗）打包成一键安装 —— 换头像、看视频、写评论、发出去、复查可见性",
   "keywords": [
     "dsh",
