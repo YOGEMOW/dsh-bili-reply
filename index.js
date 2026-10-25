@@ -27,6 +27,7 @@ import {
 } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { homedir } from 'node:os'
+import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 
 export const name = 'bili-reply'
@@ -69,6 +70,15 @@ const USER_OWNED = new Set([
   'tools/replies.log',
   'tools/reply.lock',
 ])
+
+/** 这些文件若被用户改过，force 时也不覆盖，只把新版另存成 .new */
+const PROTECT_IF_MODIFIED = new Set([
+  'tools/watch-at.ps1',
+])
+
+const sha256 = (p) => {
+  try { return createHash('sha256').update(readFileSync(p)).digest('hex') } catch { return '' }
+}
 
 export function apply(ctx, config) {
   // ⚠️ 宿主传进来的 config 里，值不保证是原始类型（实测 skillDir 会拿到一个对象）——
@@ -135,6 +145,12 @@ export function apply(ctx, config) {
         if (USER_OWNED.has(rel)) { out.skipped.push(rel); continue }
         const exists = existsSync(dst)
         if (exists && !force) { out.skipped.push(rel); continue }
+        // 用户改过的受保护文件：force 也不覆盖，新版另存 .new（否则本地定制会被冲掉）
+        if (exists && force && PROTECT_IF_MODIFIED.has(rel) && sha256(src) !== sha256(dst)) {
+          try { writeFileSync(dst + '.new', readFileSync(src)) } catch { /* 写不了就只跳过 */ }
+          out.skipped.push(rel + '（本地改过，未覆盖；新版已另存为 .new）')
+          continue
+        }
         mkdirSync(dirname(dst), { recursive: true })
         copyFileSync(src, dst)
         out.copied.push(rel)
